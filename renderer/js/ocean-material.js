@@ -157,31 +157,37 @@ const OCEAN_VERTEX_SHADER = /* glsl */`
     vec3 binormal = normalize(vec3(0.0, 0.0, 1.0) + B);
     vec3 N = normalize(cross(binormal, tangent));
 
-    // ── 【修复版】真正的屏幕边界撞击物理 (鱼缸效应) ───────
-    // 1. 获取当前波浪在屏幕上的投影位置 (NDC 坐标: -1.0 到 1.0)
+    // ── 【终极安全版】真正的屏幕边界撞击物理 (鱼缸效应) ───
     vec4 screenPos = projectionMatrix * modelViewMatrix * vec4(pos.x, dy, pos.z, 1.0);
-    vec2 ndc = screenPos.xy / screenPos.w;
 
-    // 2. 计算距离屏幕左(-1)、右(1)、下(-1)边缘的距离
-    float dLeft   = abs(ndc.x - (-1.0));
-    float dRight  = abs(ndc.x - 1.0);
-    float dBottom = abs(ndc.y - (-1.0));
+    float boundaryCrash = 0.0;
 
-    // 3. 将距离转换为撞击力度 (0.12 的 NDC 大约相当于屏幕边缘 6% 的区域)
-    float crashLeft   = 1.0 - smoothstep(0.0, 0.12, dLeft);
-    float crashRight  = 1.0 - smoothstep(0.0, 0.12, dRight);
-    float crashBottom = 1.0 - smoothstep(0.0, 0.15, dBottom); // 底部模拟沙滩，范围略宽
+    // 致命 Bug 修复：只计算位于相机正前方 (w > 0.5) 且不要太远 (w < 40.0) 的顶点。
+    // 这彻底防止了背面顶点翻转导致的全屏白屏崩溃。
+    if (screenPos.w > 0.5 && screenPos.w < 40.0) {
+      vec2 ndc = screenPos.xy / screenPos.w;
 
-    // 取最大的撞击力
-    float boundaryCrash = max(crashLeft, max(crashRight, crashBottom));
+      float dLeft   = abs(ndc.x - (-1.0));
+      float dRight  = abs(ndc.x - 1.0);
+      float dBottom = abs(ndc.y - (-1.0));
 
-    // 4. 远景衰减：避免极远处的地平线在左右边缘也激起贴墙浪花
-    float depthFade = 1.0 - smoothstep(20.0, 60.0, screenPos.w);
-    boundaryCrash *= depthFade;
+      // 加入一点高频 FBM 噪声，让拍打在玻璃上的浪花边缘高低起伏，更像真实的流体
+      float edgeNoise = fbm(pos.xz * 3.0 + u_time, 2) * 0.08;
 
-    // 5. 应用物理爬升与粉碎效果
-    dy += boundaryCrash * 1.8;   // 浪花顺着屏幕玻璃向上爬升
-    jac -= boundaryCrash * 4.0;  // 赋予极负的挤压值，确保 Fragment Shader 100% 生成纯白泡沫
+      float crashLeft   = 1.0 - smoothstep(0.0, 0.15 + edgeNoise, dLeft);
+      float crashRight  = 1.0 - smoothstep(0.0, 0.15 + edgeNoise, dRight);
+      float crashBottom = 1.0 - smoothstep(0.0, 0.20 + edgeNoise, dBottom);
+
+      boundaryCrash = max(crashLeft, max(crashRight, crashBottom));
+
+      // 远景衰减：只让靠近相机的边缘起浪
+      float depthFade = 1.0 - smoothstep(20.0, 40.0, screenPos.w);
+      boundaryCrash *= depthFade;
+    }
+
+    // 物理抬升与彻底粉碎
+    dy += boundaryCrash * 2.5;   // 浪潮顺着屏幕玻璃向上猛烈爬升
+    jac -= boundaryCrash * 6.0;  // 赋予极负的雅可比值，强制 Fragment Shader 100% 生成纯白泡沫
     jacobian = 1.0 + jac;
 
     // ── 新位置 ─────────────────────────────────────────
