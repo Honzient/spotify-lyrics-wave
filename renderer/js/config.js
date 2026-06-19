@@ -37,12 +37,12 @@ const CONFIG = {
     PLANE_SEGMENTS: 512,
 
     // Bloom 后处理
-    BLOOM_STRENGTH: 0.7,
-    BLOOM_RADIUS:   0.5,
-    BLOOM_THRESHOLD: 0.6,
+    BLOOM_STRENGTH: 1.5,
+    BLOOM_RADIUS:   0.8,
+    BLOOM_THRESHOLD: 0.85,
 
     // 曝光
-    TONE_MAPPING_EXPOSURE: 1.3,
+    TONE_MAPPING_EXPOSURE: 1.2,
   },
 
   UI: {

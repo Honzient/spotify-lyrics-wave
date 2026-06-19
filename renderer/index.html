@@ -82,12 +82,12 @@
   <!-- JavaScript (defer 确保 Module 脚本先于应用脚本执行)                -->
   <!-- ═══════════════════════════════════════════════════════════════════ -->
 
-  <!-- ES Module Import Map -->
+  <!-- ES Module Import Map (本地 lib/ 路径, ASAR 打包兼容) -->
   <script type="importmap">
   {
     "imports": {
-      "three": "../node_modules/three/build/three.module.min.js",
-      "three/addons/": "../node_modules/three/examples/jsm/"
+      "three": "./lib/three.module.min.js",
+      "three/addons/": "./lib/"
     }
   }
   </script>
@@ -105,9 +105,10 @@
   </script>
 
   <!-- 应用脚本 (defer 确保在 THREE 就绪后执行) -->
+  <!-- Spotify/歌词模块暂时禁用，后续联动时重新引入 -->
+  <!-- <script defer src="js/spotify.js"></script> -->
+  <!-- <script defer src="js/lyrics.js"></script> -->
   <script defer src="js/config.js"></script>
-  <script defer src="js/spotify.js"></script>
-  <script defer src="js/lyrics.js"></script>
   <script defer src="js/audio-analyzer.js"></script>
   <script defer src="js/ocean-material.js"></script>
   <script defer src="js/scene.js"></script>
