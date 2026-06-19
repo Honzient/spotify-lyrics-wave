@@ -157,21 +157,31 @@ const OCEAN_VERTEX_SHADER = /* glsl */`
     vec3 binormal = normalize(vec3(0.0, 0.0, 1.0) + B);
     vec3 N = normalize(cross(binormal, tangent));
 
-    // ── 边界撞击物理 ───────────────────────────────────
-    // 计算顶点到四个边界的最短 UV 距离 (0=边缘, 0.5=中心)
-    float edgeDistX = min(uv.x, 1.0 - uv.x);
-    float edgeDistY = min(uv.y, 1.0 - uv.y);
-    float edgeDist = min(edgeDistX, edgeDistY);
+    // ── 【修复版】真正的屏幕边界撞击物理 (鱼缸效应) ───────
+    // 1. 获取当前波浪在屏幕上的投影位置 (NDC 坐标: -1.0 到 1.0)
+    vec4 screenPos = projectionMatrix * modelViewMatrix * vec4(pos.x, dy, pos.z, 1.0);
+    vec2 ndc = screenPos.xy / screenPos.w;
 
-    // 撞击力: 仅在 5% 边界区域内生效
-    float boundaryCrash = 1.0 - smoothstep(0.0, 0.05, edgeDist);
+    // 2. 计算距离屏幕左(-1)、右(1)、下(-1)边缘的距离
+    float dLeft   = abs(ndc.x - (-1.0));
+    float dRight  = abs(ndc.x - 1.0);
+    float dBottom = abs(ndc.y - (-1.0));
 
-    // 物理效果:
-    // 1. 抬高水面 → 海浪爬墙
-    dy += boundaryCrash * 1.5;
+    // 3. 将距离转换为撞击力度 (0.12 的 NDC 大约相当于屏幕边缘 6% 的区域)
+    float crashLeft   = 1.0 - smoothstep(0.0, 0.12, dLeft);
+    float crashRight  = 1.0 - smoothstep(0.0, 0.12, dRight);
+    float crashBottom = 1.0 - smoothstep(0.0, 0.15, dBottom); // 底部模拟沙滩，范围略宽
 
-    // 2. 极度负向雅可比 → Fragment Shader 生成巨量白沫
-    jac -= boundaryCrash * 3.0;
+    // 取最大的撞击力
+    float boundaryCrash = max(crashLeft, max(crashRight, crashBottom));
+
+    // 4. 远景衰减：避免极远处的地平线在左右边缘也激起贴墙浪花
+    float depthFade = 1.0 - smoothstep(20.0, 60.0, screenPos.w);
+    boundaryCrash *= depthFade;
+
+    // 5. 应用物理爬升与粉碎效果
+    dy += boundaryCrash * 1.8;   // 浪花顺着屏幕玻璃向上爬升
+    jac -= boundaryCrash * 4.0;  // 赋予极负的挤压值，确保 Fragment Shader 100% 生成纯白泡沫
     jacobian = 1.0 + jac;
 
     // ── 新位置 ─────────────────────────────────────────
