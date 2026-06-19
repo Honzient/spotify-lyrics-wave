@@ -157,6 +157,23 @@ const OCEAN_VERTEX_SHADER = /* glsl */`
     vec3 binormal = normalize(vec3(0.0, 0.0, 1.0) + B);
     vec3 N = normalize(cross(binormal, tangent));
 
+    // ── 边界撞击物理 ───────────────────────────────────
+    // 计算顶点到四个边界的最短 UV 距离 (0=边缘, 0.5=中心)
+    float edgeDistX = min(uv.x, 1.0 - uv.x);
+    float edgeDistY = min(uv.y, 1.0 - uv.y);
+    float edgeDist = min(edgeDistX, edgeDistY);
+
+    // 撞击力: 仅在 5% 边界区域内生效
+    float boundaryCrash = 1.0 - smoothstep(0.0, 0.05, edgeDist);
+
+    // 物理效果:
+    // 1. 抬高水面 → 海浪爬墙
+    dy += boundaryCrash * 1.5;
+
+    // 2. 极度负向雅可比 → Fragment Shader 生成巨量白沫
+    jac -= boundaryCrash * 3.0;
+    jacobian = 1.0 + jac;
+
     // ── 新位置 ─────────────────────────────────────────
     vec3 newPos = vec3(pos.x, dy, pos.z);
 
