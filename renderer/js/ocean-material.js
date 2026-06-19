@@ -25,6 +25,7 @@ const OCEAN_VERTEX_SHADER = /* glsl */`
   uniform float u_bassEnergy;
   uniform float u_midEnergy;
   uniform float u_highEnergy;
+  uniform vec3 u_cameraPos;
 
   const float PI = 3.14159265359;
   const float G  = 9.8;
@@ -157,36 +158,35 @@ const OCEAN_VERTEX_SHADER = /* glsl */`
     vec3 binormal = normalize(vec3(0.0, 0.0, 1.0) + B);
     vec3 N = normalize(cross(binormal, tangent));
 
-    // ── 【精确边界版】屏幕边缘海浪拍打 (鱼缸效应) ───────
-    vec4 screenPos = projectionMatrix * modelViewMatrix * vec4(pos.x, dy, pos.z, 1.0);
+    // ── 【终极物理版】基于相机视野的 V 型碰撞墙 ───────
+    // 1. 获取顶点到相机的 Z 轴纵深距离 (相机在 Z=8 左右)
+    float distanceToCam = u_cameraPos.z - pos.z;
 
-    float boundaryCrash = 0.0;
+    // 2. 构建一个 V 型的物理边界（完美贴合相机的透视视口边缘）
+    float viewHalfWidth = distanceToCam * 0.85;
 
-    // 安全锁: 仅相机正前方且近景 (w=1~25m) 的顶点参与边缘检测
-    if (screenPos.w > 1.0 && screenPos.w < 25.0) {
-      vec2 ndc = screenPos.xy / screenPos.w;
+    // 3. 计算当前顶点到左、右、下三面"物理玻璃墙"的距离
+    float distLeft = pos.x - (-viewHalfWidth);
+    float distRight = viewHalfWidth - pos.x;
+    float distFront = distanceToCam - 6.0; // 屏幕底部的碰撞墙（距相机 6.0 单位）
 
-      float dLeft   = abs(ndc.x - (-1.0));
-      float dRight  = abs(ndc.x - 1.0);
-      float dBottom = abs(ndc.y - (-1.0));
+    // 4. 碰撞感应区宽度（加大到 4.0 单位，绝对保证覆盖足够多的网格，绝不漏判！）
+    float crashZone = 4.0;
 
-      // 极窄的边缘区域 (NDC 0.06 ≈ 屏幕 3%), 带噪声起伏
-      float edgeNoise = fbm(pos.xz * 2.5 + u_time * 0.3, 2) * 0.04;
+    // 加入有机的海浪飞溅噪声，避免撞击线像刀切一样死板
+    float edgeNoise = fbm(pos.xz * 3.0 - u_time, 3) * 1.5;
 
-      float crashLeft   = 1.0 - smoothstep(0.0, 0.06 + edgeNoise, dLeft);
-      float crashRight  = 1.0 - smoothstep(0.0, 0.06 + edgeNoise, dRight);
-      float crashBottom = 1.0 - smoothstep(0.0, 0.08 + edgeNoise, dBottom);
+    // 5. 计算撞击猛烈程度 (越靠近墙壁数值越趋近于 1.0)
+    float cLeft = 1.0 - smoothstep(0.0, crashZone + edgeNoise, distLeft);
+    float cRight = 1.0 - smoothstep(0.0, crashZone + edgeNoise, distRight);
+    float cFront = 1.0 - smoothstep(0.0, crashZone + edgeNoise, distFront);
 
-      boundaryCrash = max(crashLeft, max(crashRight, crashBottom));
+    // 获取三个方向的叠加撞击力
+    float boundaryCrash = max(cLeft, max(cRight, cFront));
 
-      // 近景衰减: 太远不生效
-      float depthFade = 1.0 - smoothstep(10.0, 25.0, screenPos.w);
-      boundaryCrash *= depthFade;
-    }
-
-    // 轻微爬升 + 适度白沫 (精准只影响边缘)
-    dy += boundaryCrash * 1.2;
-    jac -= boundaryCrash * 2.5;
+    // 6. 应用物理抬升与强制白沫
+    dy += boundaryCrash * 3.0;   // 浪涛顺着边框向上攀爬 3.0 个单位
+    jac -= boundaryCrash * 15.0; // 赋予极度负向的雅可比值，强制 100% 激发厚重白沫
     jacobian = 1.0 + jac;
 
     // ── 新位置 ─────────────────────────────────────────
