@@ -157,37 +157,36 @@ const OCEAN_VERTEX_SHADER = /* glsl */`
     vec3 binormal = normalize(vec3(0.0, 0.0, 1.0) + B);
     vec3 N = normalize(cross(binormal, tangent));
 
-    // ── 【终极安全版】真正的屏幕边界撞击物理 (鱼缸效应) ───
+    // ── 【精确边界版】屏幕边缘海浪拍打 (鱼缸效应) ───────
     vec4 screenPos = projectionMatrix * modelViewMatrix * vec4(pos.x, dy, pos.z, 1.0);
 
     float boundaryCrash = 0.0;
 
-    // 致命 Bug 修复：只计算位于相机正前方 (w > 0.5) 且不要太远 (w < 40.0) 的顶点。
-    // 这彻底防止了背面顶点翻转导致的全屏白屏崩溃。
-    if (screenPos.w > 0.5 && screenPos.w < 40.0) {
+    // 安全锁: 仅相机正前方且近景 (w=1~25m) 的顶点参与边缘检测
+    if (screenPos.w > 1.0 && screenPos.w < 25.0) {
       vec2 ndc = screenPos.xy / screenPos.w;
 
       float dLeft   = abs(ndc.x - (-1.0));
       float dRight  = abs(ndc.x - 1.0);
       float dBottom = abs(ndc.y - (-1.0));
 
-      // 加入一点高频 FBM 噪声，让拍打在玻璃上的浪花边缘高低起伏，更像真实的流体
-      float edgeNoise = fbm(pos.xz * 3.0 + u_time, 2) * 0.08;
+      // 极窄的边缘区域 (NDC 0.06 ≈ 屏幕 3%), 带噪声起伏
+      float edgeNoise = fbm(pos.xz * 2.5 + u_time * 0.3, 2) * 0.04;
 
-      float crashLeft   = 1.0 - smoothstep(0.0, 0.15 + edgeNoise, dLeft);
-      float crashRight  = 1.0 - smoothstep(0.0, 0.15 + edgeNoise, dRight);
-      float crashBottom = 1.0 - smoothstep(0.0, 0.20 + edgeNoise, dBottom);
+      float crashLeft   = 1.0 - smoothstep(0.0, 0.06 + edgeNoise, dLeft);
+      float crashRight  = 1.0 - smoothstep(0.0, 0.06 + edgeNoise, dRight);
+      float crashBottom = 1.0 - smoothstep(0.0, 0.08 + edgeNoise, dBottom);
 
       boundaryCrash = max(crashLeft, max(crashRight, crashBottom));
 
-      // 远景衰减：只让靠近相机的边缘起浪
-      float depthFade = 1.0 - smoothstep(20.0, 40.0, screenPos.w);
+      // 近景衰减: 太远不生效
+      float depthFade = 1.0 - smoothstep(10.0, 25.0, screenPos.w);
       boundaryCrash *= depthFade;
     }
 
-    // 物理抬升与彻底粉碎
-    dy += boundaryCrash * 2.5;   // 浪潮顺着屏幕玻璃向上猛烈爬升
-    jac -= boundaryCrash * 6.0;  // 赋予极负的雅可比值，强制 Fragment Shader 100% 生成纯白泡沫
+    // 轻微爬升 + 适度白沫 (精准只影响边缘)
+    dy += boundaryCrash * 1.2;
+    jac -= boundaryCrash * 2.5;
     jacobian = 1.0 + jac;
 
     // ── 新位置 ─────────────────────────────────────────
@@ -228,14 +227,14 @@ const OCEAN_FRAGMENT_SHADER = /* glsl */`
   // =========================================================================
   // 颜色常量
   // =========================================================================
-  const vec3 WATER_DEEP    = vec3(0.0, 0.08, 0.18);
-  const vec3 WATER_MID     = vec3(0.0, 0.22, 0.38);
-  const vec3 WATER_SHALLOW = vec3(0.0, 0.35, 0.55);
-  const vec3 WATER_SURFACE = vec3(0.05, 0.55, 0.78);
-  const vec3 FOAM_COLOR    = vec3(0.85, 0.93, 0.98);
-  const vec3 SSS_COLOR     = vec3(0.15, 0.75, 0.55);  // 透光碧绿
-  const vec3 SKY_TOP       = vec3(0.08, 0.13, 0.22);
-  const vec3 SKY_HORIZON   = vec3(0.45, 0.65, 0.88);
+  const vec3 WATER_DEEP    = vec3(0.01, 0.06, 0.18);  // 深海 — 深蓝
+  const vec3 WATER_MID     = vec3(0.01, 0.15, 0.35);  // 中层 — 宝石蓝
+  const vec3 WATER_SHALLOW = vec3(0.02, 0.28, 0.52);  // 浅海 — 亮蓝
+  const vec3 WATER_SURFACE = vec3(0.06, 0.48, 0.72);  // 海面 — 天蓝
+  const vec3 FOAM_COLOR    = vec3(0.90, 0.95, 0.98);  // 白沫
+  const vec3 SSS_COLOR     = vec3(0.10, 0.72, 0.58);  // 透光翡翠绿
+  const vec3 SKY_TOP       = vec3(0.06, 0.12, 0.25);  // 天顶
+  const vec3 SKY_HORIZON   = vec3(0.38, 0.58, 0.82);  // 地平线
   const vec3 SUN_COLOR     = vec3(1.0, 0.95, 0.75);
 
   // =========================================================================
@@ -263,11 +262,11 @@ const OCEAN_FRAGMENT_SHADER = /* glsl */`
     vec3 H = normalize(L + V);
 
     // =====================================================================
-    // 1. 菲涅尔 — Schlick 近似
+    // 1. 菲涅尔 — Schlick 近似 (强化 3D 纵深感)
     // =====================================================================
     float NdotV = abs(dot(N, V));
-    float F0 = 0.02;  // 水的基底反射率
-    float fresnel = F0 + (1.0 - F0) * pow(1.0 - NdotV, 5.0);
+    float F0 = 0.03;  // 水的基底反射率
+    float fresnel = F0 + (1.0 - F0) * pow(1.0 - NdotV, 4.5);
 
     // =====================================================================
     // 2. 天空反射色 (基于反射向量)
@@ -311,8 +310,8 @@ const OCEAN_FRAGMENT_SHADER = /* glsl */`
     // J < 0.4  → 严重挤压 → 大量泡沫 (波浪破碎)
     // highEnergy 降低阈值 → 音乐高潮时更容易起沫
 
-    float foamBaseThreshold = 0.65;                       // 基础阈值
-    float foamThreshold = foamBaseThreshold - u_highEnergy * 0.35; // 高频降低阈值 → 更易起沫
+    float foamBaseThreshold = 0.55;                       // 基础阈值 (更低 = 需要更挤压才起沫)
+    float foamThreshold = foamBaseThreshold - u_highEnergy * 0.25;
 
     // 核心: Jacobian 驱动的泡沫
     float jacFoam = 1.0 - smoothstep(foamThreshold - 0.2, foamThreshold + 0.2, vJacobian);
@@ -327,7 +326,7 @@ const OCEAN_FRAGMENT_SHADER = /* glsl */`
     float streakFoam = jacFoam * foamPattern * 0.4;
 
     // bassEnergy 增强泡沫 (浪卷得更尖锐)
-    float totalFoam = texturedFoam * (0.7 + u_bassEnergy * 0.5) + streakFoam;
+    float totalFoam = texturedFoam * (0.5 + u_bassEnergy * 0.3) + streakFoam * 0.5;
 
     // =====================================================================
     // 7. 焦散/波光效果
@@ -342,24 +341,24 @@ const OCEAN_FRAGMENT_SHADER = /* glsl */`
     // 8. 合成 — 最终颜色
     // =====================================================================
 
-    // 基础水色 = 菲涅尔混合 (折射 ↔ 反射)
-    vec3 color = mix(waterRefraction, skyReflection, fresnel * 0.75);
+    // 基础水色 = 菲涅尔混合 (折射 ↔ 反射, 增强 3D 感)
+    vec3 color = mix(waterRefraction, skyReflection, fresnel * 0.85);
 
-    // SSS 透光叠加
-    color += sss * SSS_COLOR * (0.6 + u_bassEnergy * 0.4);
+    // SSS 透光叠加 (翡翠绿透光, 仅在浪尖背光面可见)
+    color += sss * SSS_COLOR * (0.4 + u_bassEnergy * 0.3);
 
-    // 镜面高光 (Bloom 抓取目标)
-    color += specular * SUN_COLOR * (0.6 + u_midEnergy * 0.4);
+    // 镜面高光 (Bloom 抓取目标 — 波光粼粼)
+    color += specular * SUN_COLOR * (0.5 + u_midEnergy * 0.3);
 
     // 焦散
-    color += caustics * WATER_SURFACE;
+    color += caustics * WATER_SURFACE * 0.5;
 
-    // ★ 雅可比泡沫
-    color = mix(color, FOAM_COLOR, clamp(totalFoam, 0.0, 1.0));
+    // ★ 雅可比泡沫 (柔和叠加, 不突兀)
+    color = mix(color, FOAM_COLOR, clamp(totalFoam * 0.85, 0.0, 1.0));
 
-    // 水下散射暗调
-    float underwaterDark = smoothstep(-0.1, 0.3, NdotV);
-    color *= 0.6 + underwaterDark * 0.4;
+    // 水下散射暗调 (俯视暗, 斜视亮 — 增强体积感)
+    float underwaterDark = smoothstep(-0.05, 0.35, NdotV);
+    color *= 0.55 + underwaterDark * 0.45;
 
     // 远处雾化
     float dist = length(vWorldPos.xz);
