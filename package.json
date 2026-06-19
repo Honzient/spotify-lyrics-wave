@@ -1,0 +1,50 @@
+{
+  "name": "spotify-lyrics-wave",
+  "version": "2.0.0",
+  "description": "Spotify 歌词液态玻璃律动 — 3D 海浪桌面应用",
+  "main": "main.js",
+  "scripts": {
+    "start": "electron .",
+    "dev": "electron . --dev",
+    "build:win": "electron-builder --win portable",
+    "build:win:installer": "electron-builder --win"
+  },
+  "dependencies": {
+    "three": "^0.170.0"
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.0.0"
+  },
+  "build": {
+    "appId": "com.spotify.lyrics.wave",
+    "productName": "Spotify 歌词液态玻璃",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*",
+      ".env"
+    ],
+    "extraResources": [],
+    "win": {
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ],
+      "sign": null,
+      "signAndEditExecutable": false
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "portable": {
+      "artifactName": "SpotifyLyricsWave.exe"
+    }
+  }
+}

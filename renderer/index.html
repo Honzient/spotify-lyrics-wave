@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Spotify 歌词液态玻璃</title>
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- 3D 海浪 Canvas (Three.js 渲染目标)                                  -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <div id="ocean-container">
+    <canvas id="ocean-canvas"></canvas>
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- 玻璃 UI 叠加层                                                      -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+  <!-- 窗口拖拽区域 + 控制按钮 -->
+  <div id="titlebar" class="titlebar">
+    <span class="titlebar-title">🌊 Spotify 歌词液态玻璃</span>
+    <div class="titlebar-controls">
+      <button id="btn-minimize" class="titlebar-btn" title="最小化">─</button>
+      <button id="btn-maximize" class="titlebar-btn" title="最大化">□</button>
+      <button id="btn-close" class="titlebar-btn btn-close" title="关闭">✕</button>
+    </div>
+  </div>
+
+  <!-- 主 UI 内容区 -->
+  <div id="ui-overlay" class="ui-overlay">
+
+    <!-- Spotify 连接状态 -->
+    <div id="spotify-status" class="glass-chip status-chip">
+      <span id="status-dot" class="status-dot disconnected"></span>
+      <span id="status-text">未连接 Spotify</span>
+      <button id="btn-connect-spotify" class="glass-btn-small">连接</button>
+    </div>
+
+    <!-- 歌曲信息 -->
+    <div id="song-info" class="glass-card song-card hidden">
+      <img id="album-cover" class="album-cover" src="" alt="">
+      <div class="song-details">
+        <h2 id="song-title">—</h2>
+        <p id="song-artist">—</p>
+        <div class="progress-track">
+          <div id="progress-fill" class="progress-fill"></div>
+        </div>
+        <span id="time-text" class="time-text">--:-- / --:--</span>
+      </div>
+    </div>
+
+    <!-- 歌词区域 — 液态玻璃容器 -->
+    <div id="lyrics-container" class="glass-card lyrics-card hidden">
+      <div class="lyrics-scroll" id="lyrics-scroll">
+        <p class="lyrics-placeholder">🎵 等待歌词...</p>
+      </div>
+    </div>
+
+    <!-- 播放控制 -->
+    <div id="controls" class="glass-chip controls-chip hidden">
+      <button id="btn-prev" class="ctrl-btn">⏮</button>
+      <button id="btn-play" class="ctrl-btn ctrl-btn-main">▶</button>
+      <button id="btn-next" class="ctrl-btn">⏭</button>
+    </div>
+
+    <!-- 音频指示器 -->
+    <div id="audio-bars-container" class="glass-chip audio-chip hidden">
+      <div class="audio-bars-mini">
+        <span class="bar-mini bass" id="bar-bass"></span>
+        <span class="bar-mini mid"  id="bar-mid"></span>
+        <span class="bar-mini high" id="bar-high"></span>
+      </div>
+      <span class="audio-label">系统音频</span>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+  <!-- JavaScript (defer 确保 Module 脚本先于应用脚本执行)                -->
+  <!-- ═══════════════════════════════════════════════════════════════════ -->
+
+  <!-- Three.js v0.170 (ES Module → 挂载到 window.THREE) -->
+  <script type="module">
+    import * as THREE from '../node_modules/three/build/three.module.min.js';
+    window.THREE = THREE;
+  </script>
+
+  <!-- 应用脚本 (defer 确保在 THREE 就绪后执行) -->
+  <script defer src="js/config.js"></script>
+  <script defer src="js/spotify.js"></script>
+  <script defer src="js/lyrics.js"></script>
+  <script defer src="js/audio-analyzer.js"></script>
+  <script defer src="js/ocean-material.js"></script>
+  <script defer src="js/scene.js"></script>
+  <script defer src="js/ui.js"></script>
+  <script defer src="js/app.js"></script>
+</body>
+</html>

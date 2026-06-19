@@ -1,0 +1,267 @@
+/**
+ * style.css — 液态玻璃 UI (iOS 18+ 风格)
+ *
+ * 多层深度模糊 + 光折射边缘 + 微流光效果
+ */
+
+/* ==========================================================================
+   CSS 变量 — 碧蓝海水
+   ========================================================================== */
+:root {
+  --ocean-deep:    #003D5C;
+  --ocean-mid:     #0099CC;
+  --ocean-light:   #40B8E0;
+  --ocean-foam:    #B8E8F8;
+  --glass-bg:      rgba(255,255,255,0.06);
+  --glass-border:  rgba(255,255,255,0.15);
+  --glass-highlight: rgba(255,255,255,0.08);
+  --text:          #FFFFFF;
+  --text-sub:      rgba(255,255,255,0.65);
+  --text-muted:    rgba(255,255,255,0.35);
+  --radius:        18px;
+  --radius-pill:   50px;
+}
+
+/* ==========================================================================
+   基础
+   ========================================================================== */
+*, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+html, body {
+  width: 100%; height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+  color: var(--text);
+  background: transparent;
+  -webkit-font-smoothing: antialiased;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* ==========================================================================
+   3D 画布
+   ========================================================================== */
+#ocean-container {
+  position: fixed; inset: 0; z-index: 0;
+}
+#ocean-canvas {
+  width: 100%; height: 100%; display: block;
+}
+
+/* ==========================================================================
+   标题栏 (无边框窗口拖拽)
+   ========================================================================== */
+.titlebar {
+  position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+  height: 36px;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 12px;
+  background: rgba(10, 22, 40, 0.4);
+  backdrop-filter: blur(10px);
+  -webkit-app-region: drag;
+}
+.titlebar-title {
+  font-size: 12px; color: var(--text-sub); font-weight: 500;
+}
+.titlebar-controls {
+  display: flex; gap: 6px; -webkit-app-region: no-drag;
+}
+.titlebar-btn {
+  width: 28px; height: 24px;
+  border: none; background: rgba(255,255,255,0.06);
+  color: var(--text-sub); font-size: 11px; cursor: pointer;
+  border-radius: 4px; transition: all 0.15s;
+}
+.titlebar-btn:hover { background: rgba(255,255,255,0.15); color: #fff; }
+.btn-close:hover { background: #e81123; color: #fff; }
+
+/* ==========================================================================
+   UI 叠加层
+   ========================================================================== */
+.ui-overlay {
+  position: fixed; top: 40px; left: 0; right: 0; bottom: 0; z-index: 10;
+  display: flex; flex-direction: column; align-items: center;
+  padding: 16px; gap: 10px; pointer-events: none;
+}
+.ui-overlay > * { pointer-events: auto; }
+
+/* ==========================================================================
+   多层液态玻璃 (模拟 iOS 深度模糊)
+   ========================================================================== */
+.glass-card {
+  position: relative;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: var(--radius);
+  /* 多层模糊模拟: 利用 box-shadow 叠出深度 */
+  box-shadow:
+    0 2px 8px rgba(0,0,0,0.25),
+    0 8px 32px rgba(0,0,0,0.35),
+    inset 0 1px 0 rgba(255,255,255,0.1),
+    inset 0 -1px 0 rgba(0,0,0,0.1);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+}
+
+/* 多层模糊辅助伪元素 (模拟 iOS 液态玻璃的深度层) */
+.glass-card::before {
+  content: ''; position: absolute; inset: 0; border-radius: inherit;
+  background: radial-gradient(ellipse at 50% 0%, rgba(64,184,224,0.12) 0%, transparent 70%);
+  pointer-events: none;
+}
+.glass-card::after {
+  content: ''; position: absolute; inset: 1px; border-radius: inherit;
+  border: 1px solid rgba(255,255,255,0.08);
+  pointer-events: none;
+}
+
+.glass-chip {
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: var(--radius-pill);
+  padding: 8px 18px;
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
+  box-shadow:
+    0 2px 12px rgba(0,0,0,0.25),
+    inset 0 1px 0 rgba(255,255,255,0.06);
+}
+
+/* ==========================================================================
+   状态条
+   ========================================================================== */
+.status-chip {
+  display: flex; align-items: center; gap: 8px; font-size: 13px;
+}
+.status-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+}
+.status-dot.connected { background: #4f8; box-shadow: 0 0 6px rgba(68,255,136,0.5); }
+.status-dot.disconnected { background: #888; }
+.glass-btn-small {
+  padding: 4px 14px; border: 1px solid rgba(255,255,255,0.2);
+  background: rgba(255,255,255,0.08); color: var(--text);
+  border-radius: var(--radius-pill); font-size: 12px; cursor: pointer;
+  transition: all 0.2s;
+}
+.glass-btn-small:hover { background: rgba(255,255,255,0.18); }
+
+/* ==========================================================================
+   歌曲信息
+   ========================================================================== */
+.song-card {
+  display: flex; gap: 16px; padding: 16px 20px; width: 100%; max-width: 600px;
+}
+.album-cover {
+  width: 64px; height: 64px; border-radius: 10px; object-fit: cover;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.4);
+}
+.song-details { flex: 1; min-width: 0; }
+.song-details h2 {
+  font-size: 18px; font-weight: 600; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis; margin-bottom: 2px;
+}
+.song-details p {
+  font-size: 13px; color: var(--text-sub); margin-bottom: 8px;
+}
+.progress-track {
+  width: 100%; height: 3px; background: rgba(255,255,255,0.1);
+  border-radius: 2px; overflow: hidden; margin-bottom: 3px;
+}
+.progress-fill {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, var(--ocean-deep), var(--ocean-light));
+  border-radius: 2px;
+  box-shadow: 0 0 6px rgba(64,184,224,0.4);
+  transition: width 0.5s linear;
+}
+.time-text { font-size: 11px; color: var(--text-muted); }
+
+/* ==========================================================================
+   歌词
+   ========================================================================== */
+.lyrics-card {
+  width: 100%; max-width: 600px; padding: 24px 20px;
+  min-height: 220px; max-height: 340px;
+  display: flex; align-items: center; justify-content: center;
+}
+.lyrics-scroll {
+  width: 100%; max-height: 300px; overflow-y: auto; text-align: center;
+  scroll-behavior: smooth;
+  /* 隐藏滚动条 */
+  scrollbar-width: none; -ms-overflow-style: none;
+}
+.lyrics-scroll::-webkit-scrollbar { display: none; }
+
+.lyrics-placeholder {
+  color: var(--text-muted); font-size: 16px;
+}
+.lyric-line {
+  padding: 7px 0; font-size: 18px; color: var(--text-sub);
+  transition: all 0.4s cubic-bezier(0.4,0,0.2,1);
+  line-height: 1.5;
+}
+.lyric-line.active {
+  color: #fff; font-size: 22px; font-weight: 600;
+  text-shadow: 0 0 28px rgba(64,184,224,0.55);
+  transform: scale(1.03);
+}
+
+/* 歌词顶部/底部渐变遮罩 */
+.lyrics-scroll::before, .lyrics-scroll::after {
+  content: ''; position: sticky; left:0; right:0; height: 36px;
+  display: block; pointer-events: none; z-index: 1;
+}
+.lyrics-scroll::before {
+  top: 0; background: linear-gradient(to bottom, rgba(10,22,40,0.7), transparent);
+}
+.lyrics-scroll::after {
+  bottom: 0; background: linear-gradient(to top, rgba(10,22,40,0.7), transparent);
+}
+
+/* ==========================================================================
+   播放控制
+   ========================================================================== */
+.controls-chip {
+  display: flex; gap: 10px; align-items: center;
+}
+.ctrl-btn {
+  width: 40px; height: 40px; border-radius: 50%;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: rgba(255,255,255,0.04); color: var(--text);
+  font-size: 15px; cursor: pointer; transition: all 0.2s;
+}
+.ctrl-btn:hover { background: rgba(255,255,255,0.15); transform: scale(1.07); }
+.ctrl-btn:active { transform: scale(0.94); }
+.ctrl-btn-main {
+  width: 50px; height: 50px; font-size: 18px;
+  background: rgba(64,184,224,0.15); border-color: rgba(64,184,224,0.3);
+  box-shadow: 0 0 16px rgba(64,184,224,0.2);
+}
+
+/* ==========================================================================
+   音频指示器
+   ========================================================================== */
+.audio-chip {
+  display: flex; align-items: center; gap: 8px;
+}
+.audio-bars-mini {
+  display: flex; gap: 3px; align-items: flex-end; height: 20px;
+}
+.bar-mini {
+  width: 4px; border-radius: 2px; min-height: 2px; transition: height 0.08s ease-out;
+}
+.bar-mini.bass  { background: linear-gradient(to top, #003D5C, #006994); }
+.bar-mini.mid   { background: linear-gradient(to top, #006994, #40B8E0); }
+.bar-mini.high  { background: linear-gradient(to top, #40B8E0, #B8E8F8); }
+.audio-label { font-size: 11px; color: var(--text-muted); }
+
+/* ==========================================================================
+   状态
+   ========================================================================== */
+.hidden { display: none !important; }
+
+/* ==========================================================================
+   滚动条
+   ========================================================================== */
+::-webkit-scrollbar { width: 0; }
