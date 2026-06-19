@@ -32,34 +32,17 @@ const CONFIG = {
     CAMERA_NEAR:   0.5,
     CAMERA_FAR:    80,
 
-    // 海面网格
-    PLANE_SIZE:    60,
-    PLANE_SEGMENTS: 256,
+    // 海面网格 (高分辨率 AAA 级)
+    PLANE_SIZE:    64,
+    PLANE_SEGMENTS: 512,
 
-    // Gerstner 波浪
-    WAVE_COUNT: 8,
-    WAVE_STEEPNESS: 0.25,
-    WAVE_SPEED_BASE: 1.2,
+    // Bloom 后处理
+    BLOOM_STRENGTH: 0.7,
+    BLOOM_RADIUS:   0.5,
+    BLOOM_THRESHOLD: 0.6,
 
-    // FBM
-    FBM_OCTAVES: 4,
-
-    // 渲染
-    WATER_DEEP:    [0.0, 0.15, 0.25],
-    WATER_SHALLOW: [0.0, 0.35, 0.55],
-    WATER_SURFACE: [0.0, 0.55, 0.78],
-    FOAM_COLOR:    [0.85, 0.93, 0.98],
-    SKY_COLOR:     [0.05, 0.10, 0.18],
-    SKY_HORIZON:   [0.4, 0.6, 0.85],
-
-    FRESNEL_POWER: 4.0,
-    REFLECTION_STRENGTH: 0.6,
-    FOAM_THRESHOLD: 0.5,
-
-    // 音频映射
-    BASS_AMP_MAX:  1.2,
-    MID_AMP_MAX:   0.4,
-    HIGH_FOAM_MAX: 1.0
+    // 曝光
+    TONE_MAPPING_EXPOSURE: 1.3,
   },
 
   UI: {

@@ -82,10 +82,26 @@
   <!-- JavaScript (defer 确保 Module 脚本先于应用脚本执行)                -->
   <!-- ═══════════════════════════════════════════════════════════════════ -->
 
-  <!-- Three.js v0.170 (ES Module → 挂载到 window.THREE) -->
+  <!-- ES Module Import Map -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "../node_modules/three/build/three.module.min.js",
+      "three/addons/": "../node_modules/three/examples/jsm/"
+    }
+  }
+  </script>
+
+  <!-- Three.js + Post-Processing (ES Module → 挂载到 window) -->
   <script type="module">
-    import * as THREE from '../node_modules/three/build/three.module.min.js';
+    import * as THREE from 'three';
+    import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+    import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+    import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
     window.THREE = THREE;
+    window.EffectComposer = EffectComposer;
+    window.RenderPass = RenderPass;
+    window.UnrealBloomPass = UnrealBloomPass;
   </script>
 
   <!-- 应用脚本 (defer 确保在 THREE 就绪后执行) -->

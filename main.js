@@ -195,7 +195,7 @@ async function startSpotifyAuth() {
   const params = new URLSearchParams({
     client_id: SPOTIFY_CLIENT_ID,
     response_type: 'code',
-    redirect_uri: 'https://localhost:3000/callback',
+    redirect_uri: 'http://localhost:3000/callback',
     code_challenge_method: 'S256',
     code_challenge: codeChallenge,
     scope: 'user-read-currently-playing user-read-playback-state user-modify-playback-state'
@@ -216,7 +216,7 @@ async function startSpotifyAuth() {
 
     // 拦截回调重定向 (阻止实际导航，我们只需提取 code)
     authWindow.webContents.on('will-redirect', async (event, url) => {
-      if (url.startsWith('https://localhost:3000/callback')) {
+      if (url.startsWith('http://localhost:3000/callback')) {
         event.preventDefault(); // 阻止导航到不存在的本地 HTTPS 服务器
         const urlObj = new URL(url);
         const code = urlObj.searchParams.get('code');
@@ -230,7 +230,7 @@ async function startSpotifyAuth() {
               client_id: SPOTIFY_CLIENT_ID,
               grant_type: 'authorization_code',
               code,
-              redirect_uri: 'https://localhost:3000/callback',
+              redirect_uri: 'http://localhost:3000/callback',
               code_verifier: codeVerifier
             })
           });
