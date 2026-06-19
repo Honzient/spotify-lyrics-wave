@@ -60,7 +60,7 @@ const OceanScene = (() => {
     _scene.add(hemi);
 
     // ★ 强定向光 — 模拟太阳 (产生镜面高光 → Bloom 辉光)
-    const sun = new THREE.DirectionalLight(0xffeedd, 4.5);
+    const sun = new THREE.DirectionalLight(0xffeedd, 2.5);
     sun.position.set(20, 25, -15);
     _scene.add(sun);
 

@@ -282,7 +282,7 @@ const OCEAN_FRAGMENT_SHADER = /* glsl */`
     float foamThreshold = foamBaseThreshold - u_highEnergy * 0.35; // 高频降低阈值 → 更易起沫
 
     // 核心: Jacobian 驱动的泡沫
-    float jacFoam = 1.0 - smoothstep(foamThreshold + 0.25, foamThreshold - 0.15, vJacobian);
+    float jacFoam = 1.0 - smoothstep(foamThreshold - 0.2, foamThreshold + 0.2, vJacobian);
 
     // FBM 细碎纹理调制 (浪尾网状拖痕)
     float foamNoise = fbm2(vWorldPos.xz * 8.0 + u_time * 0.25, 3);
